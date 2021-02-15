@@ -1,5 +1,7 @@
 package info.plateaukao.naverdict
 
+import android.app.Activity
+import android.app.SearchManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -15,16 +17,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // relaunch it by using new task
+        if (intent?.action == Intent.ACTION_PROCESS_TEXT) {
+            launchInExistingApp(intent)
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.webView)
         initWebView()
 
-        if (getKeyword(this.intent) != null) {
-            searchInNaver(this.intent)
-        } else {
-            webView.loadUrl("https://zh.dict.naver.com/")
-        }
+        handleIntent(this.intent)
     }
 
     private fun initWebView() {
@@ -36,9 +42,14 @@ class MainActivity : AppCompatActivity() {
 
         webView.webViewClient = object: WebViewClient() {
             val javaScriptString = "javascript:(function() { " +
-                    "document.getElementById(\"header\").style.display = \"none\";" +
-                    "document.getElementById(\"loadingArea\").style.display = \"none\";" +
+                    // thick header
+                    //"document.getElementById(\"header\").style.display = \"none\";" +
+                    "document.getElementById(\"header\").remove();" +
+                    // loading cursor
+                    //"document.getElementById(\"loadingArea\").style.display = \"none\";" +
+                    // wordbook button
                     "document.getElementsByClassName(\"nav_wordbook _nav_wordbook\")[0].style.display = \"none\";" +
+                    // all / vocab / examples bar
                     "document.getElementsByClassName(\"Nlnb_menu_list\")[0].style.display = \"none\";" +
                     "})();"
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -63,13 +74,36 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
 
-        searchInNaver(intent)
+        handleIntent(intent)
+    }
+
+    private fun launchInExistingApp(intent: Intent?) {
+        val text = intent?.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: return
+        val intent = Intent("colordict.intent.action.SEARCH").apply {
+            putExtra("EXTRA_QUERY", text)
+        }
+        startActivity(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        when {
+            getKeyword(intent) != null -> {
+                val keyword = getKeyword(intent) ?: return
+                searchInNaver(keyword)
+            }
+            intent?.action == Intent.ACTION_PROCESS_TEXT -> {
+                val text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: return
+                searchInNaver(text)
+            }
+            else -> {
+                webView.loadUrl("https://zh.dict.naver.com/")
+            }
+        }
     }
 
     private fun getKeyword(intent: Intent?): String? = intent?.getStringExtra("EXTRA_QUERY")
 
-    private fun searchInNaver(intent: Intent?) {
-        val keyword = getKeyword(intent) ?: return
+    private fun searchInNaver(keyword: String) {
         webView.loadUrl("https://zh.dict.naver.com/#/search?query=$keyword")
     }
 
