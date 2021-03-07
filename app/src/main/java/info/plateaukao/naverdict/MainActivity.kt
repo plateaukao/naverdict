@@ -1,7 +1,5 @@
 package info.plateaukao.naverdict
 
-import android.app.Activity
-import android.app.SearchManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -19,11 +17,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // relaunch it by using new task
-        if (intent?.action == Intent.ACTION_PROCESS_TEXT) {
+        if (isInMultiWindowMode && intent?.action == Intent.ACTION_PROCESS_TEXT) {
             launchInExistingApp(intent)
             finish()
             return
         }
+
 
         setContentView(R.layout.activity_main)
 
@@ -31,6 +30,8 @@ class MainActivity : AppCompatActivity() {
         initWebView()
 
         handleIntent(this.intent)
+
+        overridePendingTransition(0, 0)
     }
 
     private fun initWebView() {
@@ -75,6 +76,11 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
 
         handleIntent(intent)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        overridePendingTransition(0, 0)
     }
 
     private fun launchInExistingApp(intent: Intent?) {
