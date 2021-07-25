@@ -2,32 +2,40 @@ package info.plateaukao.naverdict
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import android.view.Menu
-import android.view.MenuItem
+import android.view.*
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+
+private var dictionarySource = DictionarySource.Naver
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView : WebView
+    private lateinit var button: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // relaunch it by using new task
-        if (isInMultiWindowMode && intent?.action == Intent.ACTION_PROCESS_TEXT) {
-            launchInExistingApp(intent)
-            finish()
-            return
+        if (isInMultiWindowMode) {
+            setTheme(R.style.AppTheme_NoActionBar)
         }
-
-
-        setContentView(R.layout.activity_main)
+        setContentView(if (isInMultiWindowMode) R.layout.activity_main else R.layout.activity_main_floating)
+        setFinishOnTouchOutside(true)
 
         webView = findViewById(R.id.webView)
         initWebView()
+        button = findViewById(R.id.dict_switch)
+        button.setOnClickListener {
+            dictionarySource = when(dictionarySource) {
+                DictionarySource.Naver -> DictionarySource.Goo
+                DictionarySource.Goo -> DictionarySource.Naver
+            }
+            handleIntent(this.intent)
+        }
 
         handleIntent(this.intent)
 
@@ -39,33 +47,21 @@ class MainActivity : AppCompatActivity() {
             javaScriptEnabled = true
             databaseEnabled = true
             domStorageEnabled = true
+            textZoom = 80
         }
 
-        webView.webViewClient = object: WebViewClient() {
-            val javaScriptString = "javascript:(function() { " +
-                    // thick header
-                    //"document.getElementById(\"header\").style.display = \"none\";" +
-                    "document.getElementById(\"header\").remove();" +
-                    // loading cursor
-                    //"document.getElementById(\"loadingArea\").style.display = \"none\";" +
-                    // wordbook button
-                    "document.getElementsByClassName(\"nav_wordbook _nav_wordbook\")[0].style.display = \"none\";" +
-                    // all / vocab / examples bar
-                    "document.getElementsByClassName(\"Nlnb_menu_list\")[0].style.display = \"none\";" +
-                    "})();"
+        object: WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 hideElements()
             }
 
-            private fun hideElements() {
-                webView.loadUrl(javaScriptString)
-            }
+            private fun hideElements() = webView.loadUrl(dictionarySource.javascriptString)
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 webView.loadUrl(request?.url.toString())
                 return true
             }
-        }
+        }.also { webView.webViewClient = it }
 
         webView.webChromeClient = object: WebChromeClient() {
 
@@ -83,35 +79,26 @@ class MainActivity : AppCompatActivity() {
         overridePendingTransition(0, 0)
     }
 
-    private fun launchInExistingApp(intent: Intent?) {
-        val text = intent?.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: return
-        val intent = Intent("colordict.intent.action.SEARCH").apply {
-            putExtra("EXTRA_QUERY", text)
-        }
-        startActivity(intent)
-    }
-
     private fun handleIntent(intent: Intent?) {
         when {
             getKeyword(intent) != null -> {
                 val keyword = getKeyword(intent) ?: return
-                searchInNaver(keyword)
+                searchInDict(keyword)
             }
             intent?.action == Intent.ACTION_PROCESS_TEXT -> {
                 val text = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: return
-                searchInNaver(text)
+                searchInDict(text)
             }
             else -> {
-                webView.loadUrl("https://zh.dict.naver.com/")
+                webView.loadUrl(dictionarySource.homeString)
             }
         }
     }
 
     private fun getKeyword(intent: Intent?): String? = intent?.getStringExtra("EXTRA_QUERY")
 
-    private fun searchInNaver(keyword: String) {
-        webView.loadUrl("https://zh.dict.naver.com/#/search?query=$keyword")
-    }
+    private fun searchInDict(keyword: String) =
+        webView.loadUrl(dictionarySource.searchString + keyword)
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
