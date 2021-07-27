@@ -1,12 +1,10 @@
 package info.plateaukao.naverdict
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.*
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 
@@ -48,11 +46,30 @@ class MainActivity : AppCompatActivity() {
             databaseEnabled = true
             domStorageEnabled = true
             textZoom = 80
+            useWideViewPort = false
+            userAgentString = "Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ (KHTML, like Gecko) Version/3.0 Mobile/1A543a Safari/419.3"
         }
 
         object: WebViewClient() {
+            private var isLoading = false
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                isLoading = true
+                super.onPageStarted(view, url, favicon)
+            }
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                if (isLoading) {
+                    this@MainActivity.webView.post{ hideElements() }
+                    isLoading = false
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 hideElements()
+                isLoading = false
             }
 
             private fun hideElements() = webView.loadUrl(dictionarySource.javascriptString)

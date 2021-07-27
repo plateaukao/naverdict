@@ -23,7 +23,7 @@ enum class DictionarySource(
                 // thick header
                 "document.getElementById(\"NR-onegoo\").remove();" +
                 // wordbook button
-                "document.getElementsByClassName(\"NR-ad\")[0].remove();" +
+                "document.getElementById(\"gooad-spbadge320_1\").style = \"height:0px\";" +
                 // all / vocab / examples bar
                 "document.getElementsByClassName(\"basic_title nolink\")[0].remove();" +
                 "document.getElementByClassName(\"meaning\").scrollIntoView();" +
