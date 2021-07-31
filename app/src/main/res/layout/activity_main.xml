@@ -13,4 +13,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
+    <Button
+        android:id="@+id/dict_switch"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"/>
 </RelativeLayout>
